@@ -1,0 +1,60 @@
+include $(TOPDIR)/rules.mk
+
+PKG_NAME:=prometheus
+PKG_VERSION:=2.2.0
+PKG_RELEASE:=1
+
+PKG_SOURCE:=prometheus-$(PKG_VERSION).tar.gz
+PKG_SOURCE_PROTO:=git
+PKG_SOURCE_URL:=https://github.com/prometheus/prometheus.git
+PKG_SOURCE_DATE:=2018-03-08
+PKG_SOURCE_VERSION:=v$(PKG_VERSION)
+PKG_MIRROR_HASH:=d3f44c7a0ea546a61d403ddd02f0b896ba63612773bf72369564932110e03c62
+PKG_CAT:=zcat
+
+include $(INCLUDE_DIR)/package.mk
+
+define Package/prometheus
+  SECTION:=utils
+  CATEGORY:=Utilities
+  TITLE:=Prometheus, is a systems and service monitoring system.
+  #DESCRIPTION:=This variable is obsolete. use the Package/name/description define instead!
+  URL:=https://prometheus.io
+endef
+
+GOPATH:=$(HOME)/go
+define Build/Clean
+	rm -rf $(GOPATH)
+endef
+
+define Build/Prepare
+	$(call Build/Prepare/Default,)
+	mkdir -p $(GOPATH)/src/github.com/prometheus
+	ln -s $(PKG_BUILD_DIR) $(GOPATH)/src/github.com/prometheus/prometheus
+endef
+
+define Build/Compile
+	$(MAKE) GOARM=7 GOARCH=arm -C $(PKG_BUILD_DIR) build
+endef
+
+define Package/conffiles
+	/etc/prometheus/prometheus.yaml
+endef
+
+define Package/prometheus/install
+	$(INSTALL_DIR) $(1)/usr/sbin
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/prometheus $(1)/usr/sbin/
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/promtool $(1)/usr/sbin/
+
+	$(INSTALL_DIR) $(1)/etc
+	$(INSTALL_DIR) $(1)/etc/prometheus
+	$(INSTALL_DIR) $(1)/etc/prometheus/console_libraries
+	$(INSTALL_DIR) $(1)/etc/prometheus/consoles
+
+	$(INSTALL_CONF) ./files/prometheus.yaml $(1)/etc/prometheus/
+	$(INSTALL_DIR) $(1)/etc/init.d
+	$(INSTALL_BIN) ./files/prometheus.init $(1)/etc/init.d/prometheus
+	$(INSTALL_DIR) $(1)/etc/collectd/conf.d
+endef
+
+$(eval $(call BuildPackage,prometheus))
