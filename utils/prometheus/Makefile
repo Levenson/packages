@@ -1,13 +1,13 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=prometheus
-PKG_VERSION:=2.2.0
-PKG_RELEASE:=1
+PKG_VERSION:=2.2.1
+PKG_RELEASE:=2
 
 PKG_SOURCE:=prometheus-$(PKG_VERSION).tar.gz
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://github.com/prometheus/prometheus.git
-PKG_SOURCE_DATE:=2018-03-08
+PKG_SOURCE_DATE:=2018-03-13
 PKG_SOURCE_VERSION:=v$(PKG_VERSION)
 PKG_MIRROR_HASH:=d3f44c7a0ea546a61d403ddd02f0b896ba63612773bf72369564932110e03c62
 PKG_CAT:=zcat
@@ -22,19 +22,10 @@ define Package/prometheus
   URL:=https://prometheus.io
 endef
 
-GOPATH:=$(HOME)/go
-define Build/Clean
-	rm -rf $(GOPATH)
-endef
-
-define Build/Prepare
-	$(call Build/Prepare/Default,)
-	mkdir -p $(GOPATH)/src/github.com/prometheus
-	ln -s $(PKG_BUILD_DIR) $(GOPATH)/src/github.com/prometheus/prometheus
-endef
-
 define Build/Compile
-	$(MAKE) GOARM=7 GOARCH=arm -C $(PKG_BUILD_DIR) build
+	mkdir -p $(PKG_BUILD_DIR)/src/github.com/prometheus
+	ln -s $(PKG_BUILD_DIR) $(PKG_BUILD_DIR)/src/github.com/prometheus/prometheus
+	GOPATH=$(PKG_BUILD_DIR)	$(MAKE) GOARM=7 GOARCH=$(ARCH) -C $(PKG_BUILD_DIR) build
 endef
 
 define Package/conffiles
