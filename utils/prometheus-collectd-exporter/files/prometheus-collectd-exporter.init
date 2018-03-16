@@ -8,25 +8,46 @@ USE_PROCD=1
 PROG=/usr/bin/prometheus-collectd-exporter
 
 validate_section(){
-  uci_validate_section prometheus_collectd_exporter service "${1}" \
-                       "collectd_listen_address:string"
+  uci_validate_section prometheus-collectd-exporter prometheus-collectd-exporter "${1}" \
+                       "collectd_listen_address:string" \
+                       "collectd_auth_file:string" \
+                       "collectd_listen_address:string" \
+                       "collectd_typesdb_file:string" \
+                       "collectd_udp_buffer:uinteger" \
+                       "log_level:string" \
+                       "web_collectd_push_path:string" \
+                       "web_listen_address:string" \
+                       "web_telemetry_path:string"
 }
 
 option_cb() {
-  local name="$(echo ${1} | sed '{ s/_/\./ ; s/_/-/g }')"
+  local name="${1}"
   local value="${2}"
+
+  [ $name == "collectd_auth_file" ] && name="collectd.auth-file"
+  [ $name == "collectd_listen_address" ] && name="collectd.listen-address"
+  [ $name == "collectd_typesdb_file" ] && name="collectd.typesdb-file"
+  [ $name == "collectd_udp_buffer" ] && name="collectd.udp-buffer"
+  [ $name == "log_level" ] && name="log.level"
+  [ $name == "web_collectd_push_path" ] && name="web.collectd-push-path"
+  [ $name == "web_listen_address" ] && name="web.listen-address"
+  [ $name == "web_telemetry_path" ] && name="web.telemetry-path"
 
   export OPTIONS="${OPTIONS} --${name}=${value}"
 }
 
 start_service() {
-  validate_section prometheus_collectd_exporter || {
+  validate_section main || {
     echo "validation failed"
     return 1
   }
-  config_load prometheus_collectd_exporter
+  config_load prometheus-collectd-exporter
 
   procd_open_instance
-  procd_set_param $PROG $OPTIONS
+  procd_set_param stdout 1
+  procd_set_param stderr 1
+  procd_set_param command ${PROG}
+  procd_append_param command ${OPTIONS}
   procd_close_instance
+
 }
