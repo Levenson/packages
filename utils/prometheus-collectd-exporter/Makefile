@@ -23,9 +23,9 @@ define Package/prometheus-collectd-exporter
   URL:=https://prometheus.io
 endef
 
-# define Package/conffiles
-#	/etc/prometheus/prometheus.yaml
-# endef
+define Package/conffiles
+	/etc/config/prometheus-collectd-exporter
+endef
 
 
 define Build/Compile
@@ -35,10 +35,12 @@ define Build/Compile
 endef
 
 define Package/prometheus-collectd-exporter/install
-	$(INSTALL_DIR) $(1)/usr/sbin
+	$(INSTALL_DIR) $(1)/usr/bin
 	#?? WTF Why it is wrt
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/openwrt $(1)/usr/sbin/prometheus-collectd-exporter
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/openwrt $(1)/usr/bin/prometheus-collectd-exporter
 
+	$(INSTALL_DIR) $(1)/etc/config
+	$(INSTALL_CONF) ./files/prometheus-collectd-exporter.config $(1)/etc/config/prometheus-collectd-exporter
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) ./files/prometheus-collectd-exporter.init $(1)/etc/init.d/prometheus-collectd-exporter
 endef

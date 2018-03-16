@@ -5,10 +5,28 @@ START=80
 STOP=10
 
 USE_PROCD=1
+PROG=/usr/bin/prometheus-collectd-exporter
+
+validate_section(){
+  uci_validate_section prometheus_collectd_exporter service "${1}" \
+                       "collectd_listen_address:string"
+}
+
+option_cb() {
+  local name="$(echo ${1} | sed '{ s/_/\./ ; s/_/-/g }')"
+  local value="${2}"
+
+  export OPTIONS="${OPTIONS} --${name}=${value}"
+}
 
 start_service() {
-        procd_open_instance
-        procd_set_param command /usr/sbin/prometheus-collectd-exporter \
-                        --collectd.listen-address=":25826"
-        procd_close_instance
+  validate_section prometheus_collectd_exporter || {
+    echo "validation failed"
+    return 1
+  }
+  config_load prometheus_collectd_exporter
+
+  procd_open_instance
+  procd_set_param $PROG $OPTIONS
+  procd_close_instance
 }
