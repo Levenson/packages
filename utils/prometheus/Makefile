@@ -29,6 +29,7 @@ define Build/Compile
 endef
 
 define Package/conffiles
+	/etc/config/prometheus
 	/etc/prometheus/prometheus.yaml
 endef
 
