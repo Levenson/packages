@@ -5,14 +5,38 @@ START=80
 STOP=10
 
 USE_PROCD=1
+PROG=/usr/bin/prometheus
+
+validate_section(){
+  uci_validate_section prometheus service "${1}" \
+                       "enabled:uinteger" \
+                       "config_file:string" \
+                       "web_listen_address:string" \
+                       "web_read_timeout:string" \
+                       "web_max_connections:uinteger" \
+                       "web_console_libraries:string" \
+                       "web_console_templates:string" \
+                       "storage_tsdb_retention:string" \
+                       "storage_tsdb_path:string"
+}
+
+option_cb() {
+  local name="$(echo ${1} | sed '{ s/_/\./ ; s/_/-/g }')"
+  local value="${2}"
+
+  export OPTIONS="${OPTIONS} --${name}=${value}"
+}
 
 start_service() {
-        procd_open_instance
-        procd_set_param command /usr/sbin/prometheus \
-                        --config.file="/etc/prometheus/prometheus.yaml" \
-                        --web.console.libraries="/etc/prometheus/console_libraries" \
-                        --web.console.templates="/etc/prometheus/consoles" \
-                        --storage.tsdb.retention=5y \
-                        --storage.tsdb.path=/data/prometheus
-        procd_close_instance
+  validate_section prometheus || {
+    echo "validation failed"
+    return 1
+  }
+  config_load prometheus
+  config_get data prometheus storage_tsdb_path
+  mkdir -p $data
+
+  procd_open_instance
+  procd_set_param $PROG $OPTIONS
+  procd_close_instance
 }

@@ -33,16 +33,19 @@ define Package/conffiles
 endef
 
 define Package/prometheus/install
-	$(INSTALL_DIR) $(1)/usr/sbin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/prometheus $(1)/usr/sbin/
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/promtool $(1)/usr/sbin/
+	$(INSTALL_DIR) $(1)/usr/bin
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/prometheus $(1)/usr/bin/
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/promtool $(1)/usr/bin/
 
 	$(INSTALL_DIR) $(1)/etc
 	$(INSTALL_DIR) $(1)/etc/prometheus
 	$(INSTALL_DIR) $(1)/etc/prometheus/console_libraries
 	$(INSTALL_DIR) $(1)/etc/prometheus/consoles
 
+	$(INSTALL_DIR) $(1)/etc/config
+	$(INSTALL_CONF) ./files/prometheus.config $(1)/etc/config/prometheus
 	$(INSTALL_CONF) ./files/prometheus.yaml $(1)/etc/prometheus/
+
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) ./files/prometheus.init $(1)/etc/init.d/prometheus
 	$(INSTALL_DIR) $(1)/etc/collectd/conf.d
