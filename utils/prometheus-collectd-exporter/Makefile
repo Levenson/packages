@@ -17,7 +17,7 @@ include $(INCLUDE_DIR)/package.mk
 define Package/prometheus-collectd-exporter
   SECTION:=utils
   CATEGORY:=Utilities
-  TITLE:=An exporter for collectd for consumtion by Prometheus
+  TITLE:=collectd plugin for Prometheus
   DEPENDS:=+prometheus
   #DESCRIPTION:=This variable is obsolete. use the Package/name/description define instead!
   URL:=https://prometheus.io

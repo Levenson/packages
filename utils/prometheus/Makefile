@@ -17,7 +17,7 @@ include $(INCLUDE_DIR)/package.mk
 define Package/prometheus
   SECTION:=utils
   CATEGORY:=Utilities
-  TITLE:=Prometheus, is a systems and service monitoring system.
+  TITLE:=Prometheus, is a systems and service monitoring system
   #DESCRIPTION:=This variable is obsolete. use the Package/name/description define instead!
   URL:=https://prometheus.io
 endef
