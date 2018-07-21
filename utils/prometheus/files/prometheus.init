@@ -1,0 +1,57 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2006-2016 OpenWrt.org
+
+START=80
+STOP=10
+
+USE_PROCD=1
+PROG=/usr/bin/prometheus
+
+validate_section(){
+  uci_validate_section prometheus prometheus "${1}" \
+                       "config_file:string" \
+                       "web_listen_address:string" \
+                       "web_read_timeout:string" \
+                       "web_max_connections:uinteger" \
+                       "web_console_libraries:string" \
+                       "web_console_templates:string" \
+                       "storage_tsdb_retention:string" \
+                       "storage_tsdb_path:string"
+}
+
+option_cb() {
+  local name="${1}"
+  local value="${2}"
+
+  [ $name == "config_file" ] && name="config.file"
+  [ $name == "storage_tsdb_path" ] && name="storage.tsdb.path"
+  [ $name == "storage_tsdb_retention" ] && name="storage.tsdb.retention"
+  [ $name == "web_console_libraries" ] && name="web.console.libraries"
+  [ $name == "web_console_templates" ] && name="web.console.templates"
+  [ $name == "web_listen_address" ] && name="web.listen-address"
+  [ $name == "web_max_connections" ] && name="web.max-connections"
+  [ $name == "web_read_timeout" ] && name="web.read-timeout"
+
+  export OPTIONS="${OPTIONS} --${name}=${value}"
+}
+
+start_service() {
+  validate_section main || {
+    echo "validation failed"
+    return 1
+  }
+  config_load prometheus
+  config_get data prometheus storage_tsdb_path
+
+  config_get config_file prometheus storage_tsdb_path
+
+  mkdir -p $data
+
+  procd_open_instance
+  procd_set_param file $config_file
+  procd_set_param stdout 1
+  procd_set_param stderr 1
+  procd_set_param command ${PROG}
+  procd_append_param command ${OPTIONS}
+  procd_close_instance
+}
