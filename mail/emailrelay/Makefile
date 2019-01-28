@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=emailrelay
 PKG_VERSION:=2.0
-PKG_RELEASE:=1
+PKG_RELEASE:=4
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)-src.tar.gz
 PKG_SOURCE_URL:=@SF/emailrelay/$(PKG_VERSION)
@@ -84,6 +84,11 @@ CONFIGURE_ARGS += \
 	--disable-testing \
 	--disable-windows
 
+# Workaround for https://sourceforge.net/p/emailrelay/bugs/38/
+# This should be fixed in the next release.
+CONFIGURE_VARS += \
+	ac_cv_search_pam_end=no
+
 ifeq ($(CONFIG_EMAILRELAY_SSL),y)
 	CONFIGURE_ARGS += \
 		--with-openssl
@@ -95,11 +100,6 @@ endif
 ifeq ($(CONFIG_EMAILRELAY_SUPPORT_VERBOSE_DBG),y)
 	CONFIGURE_ARGS += \
 		--enable-debug=yes
-endif
-
-ifeq ($(CONFIG_OPENSSL_WITH_SSL3),y)
-	CONFIGURE_VARS += \
-		CXXFLAGS="$$$$CXXFLAGS -DSSL3_SUPPORT"
 endif
 
 define Package/emailrelay/install

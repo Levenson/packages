@@ -8,12 +8,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=nginx
-PKG_VERSION:=1.15.2
+PKG_VERSION:=1.15.8
 PKG_RELEASE:=1
 
 PKG_SOURCE:=nginx-$(PKG_VERSION).tar.gz
-PKG_SOURCE_URL:=http://nginx.org/download/
-PKG_HASH:=eeba09aecfbe8277ac33a5a2486ec2d6731739f3c1c701b42a0c3784af67ad90
+PKG_SOURCE_URL:=https://nginx.org/download/
+PKG_HASH:=a8bdafbca87eb99813ae4fcac1ad0875bf725ce19eb265d28268c309b2b40787
 
 PKG_MAINTAINER:=Thomas Heil <heil@terminal-consulting.de> \
 				Ansuel Smith <ansuelsmth@gmail.com>
@@ -66,6 +66,9 @@ PKG_CONFIG_DEPENDS := \
 	CONFIG_NGINX_HTTP_SECURE_LINK \
 	CONFIG_NGINX_HTTP_BROTLI \
 	CONFIG_NGINX_HEADERS_MORE \
+	CONFIG_NGINX_STREAM_CORE_MODULE \
+	CONFIG_NGINX_STREAM_SSL_MODULE \
+	CONFIG_NGINX_STREAM_SSL_PREREAD_MODULE \
 	CONFIG_NGINX_RTMP_MODULE \
 	CONFIG_NGINX_TS_MODULE \
 
@@ -78,7 +81,7 @@ define Package/nginx/default
   TITLE:=Nginx web server
   URL:=http://nginx.org/
   DEPENDS:=+NGINX_PCRE:libpcre +(NGINX_SSL||NGINX_HTTP_CACHE||NGINX_HTTP_AUTH_BASIC):libopenssl \
-     +NGINX_HTTP_GZIP:zlib +NGINX_LUA:liblua +libpthread
+	+NGINX_HTTP_GZIP:zlib +NGINX_LUA:liblua +libpthread +NGINX_DAV:libexpat
 endef
 
 define Package/nginx/description
@@ -107,7 +110,7 @@ Package/nginx-ssl/description = $(Package/nginx/description) \
 define Package/nginx-all-module
   $(Package/nginx/default)
   TITLE += with ALL module selected
-  DEPENDS:=+libpcre +libopenssl +zlib +liblua +libpthread
+  DEPENDS:=+libpcre +libopenssl +zlib +liblua +libpthread +libexpat
   VARIANT:=all-module
   PROVIDES:=nginx
 endef
@@ -247,7 +250,7 @@ ifneq ($(BUILD_VARIANT),all-module)
     ADDITIONAL_MODULES += --with-http_flv_module
   endif
   ifeq ($(CONFIG_NGINX_DAV),y)
-    ADDITIONAL_MODULES += --with-http_dav_module
+    ADDITIONAL_MODULES += --with-http_dav_module --add-module=$(PKG_BUILD_DIR)/nginx-dav-ext-module
   endif
   ifeq ($(CONFIG_NGINX_HTTP_AUTH_REQUEST),y)
     ADDITIONAL_MODULES += --with-http_auth_request_module
@@ -263,6 +266,15 @@ ifneq ($(BUILD_VARIANT),all-module)
   endif
   ifeq ($(CONFIG_NGINX_HTTP_SUB),y)
 	ADDITIONAL_MODULES += --with-http_sub_module
+  endif
+  ifeq ($(CONFIG_NGINX_STREAM_CORE_MODULE),y)
+    ADDITIONAL_MODULES += --with-stream
+  endif
+  ifeq ($(CONFIG_NGINX_STREAM_SSL_MODULE),y)
+    ADDITIONAL_MODULES += --with-stream_ssl_module
+  endif
+  ifeq ($(CONFIG_NGINX_STREAM_SSL_PREREAD_MODULE),y)
+    ADDITIONAL_MODULES += --with-stream_ssl_preread_module
   endif
   ifeq ($(CONFIG_NGINX_HEADERS_MORE),y)
     ADDITIONAL_MODULES += --add-module=$(PKG_BUILD_DIR)/nginx-headers-more
@@ -283,10 +295,13 @@ else
   CONFIG_NGINX_TS_MODULE:=y
   CONFIG_NGINX_NAXSI:=y
   CONFIG_NGINX_LUA:=y
+  CONFIG_NGINX_DAV:=y
   ADDITIONAL_MODULES += --with-http_ssl_module --add-module=$(PKG_BUILD_DIR)/nginx-naxsi/naxsi_src \
     --add-module=$(PKG_BUILD_DIR)/lua-nginx --with-ipv6 --with-http_stub_status_module --with-http_flv_module \
-	--with-http_dav_module --with-http_auth_request_module --with-http_v2_module --with-http_realip_module \
+	--with-http_dav_module --add-module=$(PKG_BUILD_DIR)/nginx-dav-ext-module \
+	--with-http_auth_request_module --with-http_v2_module --with-http_realip_module \
 	--with-http_secure_link_module --with-http_sub_module --add-module=$(PKG_BUILD_DIR)/nginx-headers-more \
+	--with-stream --with-stream_ssl_module --with-stream_ssl_preread_module \
 	--add-module=$(PKG_BUILD_DIR)/nginx-brotli --add-module=$(PKG_BUILD_DIR)/nginx-rtmp \
 	--add-module=$(PKG_BUILD_DIR)/nginx-ts
   config_files += koi-utf koi-win win-utf fastcgi_params 
@@ -388,6 +403,7 @@ define Build/Prepare
 	$(Prepare/nginx-headers-more)
 	$(Prepare/nginx-rtmp)
 	$(Prepare/nginx-ts)
+	$(Prepare/nginx-dav-ext-module)
 endef
 
 
@@ -395,7 +411,7 @@ ifeq ($(CONFIG_NGINX_HEADERS_MORE),y)
   define Download/nginx-headers-more
     VERSION:=a9f7c7e86cc7441d04e2f11f01c2e3a9c4b0301d
     SUBDIR:=nginx-headers-more
-    FILE:=headers-more-nginx-module-$(PKG_VERSION)-$$(VERSION).tar.gz
+    FILE:=headers-more-nginx-module-$$(VERSION).tar.gz
     URL:=https://github.com/openresty/headers-more-nginx-module.git
     MIRROR_HASH:=432609015719aaa7241e5166c7cda427acbe004f725887f78ef629d51bd9cb3f
     PROTO:=git
@@ -413,7 +429,7 @@ ifeq ($(CONFIG_NGINX_HTTP_BROTLI),y)
   define Download/nginx-brotli
     VERSION:=e26248ee361c04e25f581b92b85d95681bdffb39
     SUBDIR:=nginx-brotli
-    FILE:=ngx-brotli-module-$(PKG_VERSION)-$$(VERSION).tar.gz
+    FILE:=ngx-brotli-module-$$(VERSION).tar.gz
     URL:=https://github.com/eustas/ngx_brotli.git
     MIRROR_HASH:=76b891ba49f82f0cfbc9cba875646e26ee986b522373e0aa2698a9923a4adcdb
     PROTO:=git
@@ -429,17 +445,17 @@ endif
 
 ifeq ($(CONFIG_NGINX_RTMP_MODULE),y)
   define Download/nginx-rtmp
-    VERSION:=791b6136f02bc9613daf178723ac09f4df5a3bbf
+    VERSION:=f0ea62342a4eca504b311cd5df910d026c3ea4cf
     SUBDIR:=nginx-rtmp
-    FILE:=ngx-rtmp-module-$(PKG_VERSION)-$$(VERSION).tar.gz
-    URL:=https://github.com/arut/nginx-rtmp-module.git
-    MIRROR_HASH:=8db3f7b545ce98f47415e0436e12dfb55ae787afd3cd9515b5642c7b9dc0ef00
+    FILE:=ngx-rtmp-module-$$(VERSION).tar.gz
+    URL:=https://github.com/ut0mt8/nginx-rtmp-module.git
+    MIRROR_HASH:=9ba7625718d21f658c4878729271832a07bd989165f1d1c720b3a9b54cf738cc
     PROTO:=git
   endef
   $(eval $(call Download,nginx-rtmp))
 
   define  Prepare/nginx-rtmp
-	$(eval $(call Download,nginx-rtmp))
+	$(eval $(Download/nginx-rtmp))
 	gzip -dc $(DL_DIR)/$(FILE) | tar -C $(PKG_BUILD_DIR) $(TAR_OPTIONS)
   endef
 endif
@@ -449,7 +465,7 @@ ifeq ($(CONFIG_NGINX_TS_MODULE),y)
   define Download/nginx-ts
     VERSION:=ef2f874d95cc75747eb625a292524a702aefb0fd
     SUBDIR:=nginx-ts
-    FILE:=ngx-ts-module-$(PKG_VERSION)-$$(VERSION).tar.gz
+    FILE:=ngx-ts-module-$$(VERSION).tar.gz
     URL:=https://github.com/arut/nginx-ts-module.git
     MIRROR_HASH:=31ecc9968b928886b54884138eafe2fa747648bca5094d4c3132e8ae9509d1d3
     PROTO:=git
@@ -457,7 +473,7 @@ ifeq ($(CONFIG_NGINX_TS_MODULE),y)
   $(eval $(call Download,nginx-ts))
 
   define  Prepare/nginx-ts
-	$(eval $(call Download,nginx-ts))
+	$(eval $(Download/nginx-ts))
 	gzip -dc $(DL_DIR)/$(FILE) | tar -C $(PKG_BUILD_DIR) $(TAR_OPTIONS)
   endef
 endif
@@ -467,7 +483,7 @@ ifeq ($(CONFIG_NGINX_NAXSI),y)
   define Download/nginx-naxsi
     VERSION:=951123ad456bdf5ac94e8d8819342fe3d49bc002
     SUBDIR:=nginx-naxsi
-    FILE:=nginx-naxsi-module-$(PKG_VERSION)-$$(VERSION).tar.gz
+    FILE:=nginx-naxsi-module-$$(VERSION).tar.gz
     URL:=https://github.com/nbs-system/naxsi.git
     MIRROR_HASH:=7ab791f2ff38096f48013141bbfe20ba213d5e04dcac08ca82e0cac07d5c30f0
     PROTO:=git
@@ -485,7 +501,7 @@ ifeq ($(CONFIG_NGINX_LUA),y)
   define Download/lua-nginx
     VERSION:=e94f2e5d64daa45ff396e262d8dab8e56f5f10e0
     SUBDIR:=lua-nginx
-    FILE:=lua-nginx-module-$(PKG_VERSION)-$$(VERSION).tar.gz
+    FILE:=lua-nginx-module-$$(VERSION).tar.gz
     URL:=https://github.com/openresty/lua-nginx-module.git
     MIRROR_HASH:=ae439f9a8b3c34d7240735b844db72ee721af4791bbaff5692bca20e6785f541
     PROTO:=git
@@ -496,6 +512,24 @@ ifeq ($(CONFIG_NGINX_LUA),y)
 	$(eval $(Download/lua-nginx))
 	gzip -dc $(DL_DIR)/$(FILE) | tar -C $(PKG_BUILD_DIR) $(TAR_OPTIONS)
 	$(call PatchDir,$(PKG_BUILD_DIR),./patches-lua-nginx)
+  endef
+endif
+
+
+ifeq ($(CONFIG_NGINX_DAV),y)
+  define Download/nginx-dav-ext-module
+    VERSION:=430fd774fe838a04f1a5defbf1dd571d42300cf9
+    SUBDIR:=nginx-dav-ext-module
+    FILE:=nginx-dav-ext-module-$$(VERSION).tar.gz
+    URL:=https://github.com/arut/nginx-dav-ext-module.git
+    MIRROR_HASH:=0566053a8756423ecab455fd9d218cec1e017598fcbb3d6415a06f816851611e
+    PROTO:=git
+  endef
+  $(eval $(call Download,nginx-dav-ext-module))
+
+  define Prepare/nginx-dav-ext-module
+	$(eval $(Download/nginx-dav-ext-module))
+	gzip -dc $(DL_DIR)/$(FILE) | tar -C $(PKG_BUILD_DIR) $(TAR_OPTIONS)
   endef
 endif
 

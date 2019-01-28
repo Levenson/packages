@@ -14,12 +14,12 @@ PYTHON_VERSION:=$(PYTHON3_VERSION)
 PYTHON_VERSION_MICRO:=$(PYTHON3_VERSION_MICRO)
 
 PKG_NAME:=python3
-PKG_RELEASE:=1
+PKG_RELEASE:=3
 PKG_VERSION:=$(PYTHON_VERSION).$(PYTHON_VERSION_MICRO)
 
 PKG_SOURCE:=Python-$(PKG_VERSION).tar.xz
 PKG_SOURCE_URL:=https://www.python.org/ftp/python/$(PKG_VERSION)
-PKG_HASH:=0382996d1ee6aafe59763426cf0139ffebe36984474d0ec4126dd1c40a8b3549
+PKG_HASH:=d83fe8ce51b1bb48bbcf0550fd265b9a75cdfdfa93f916f9e700aef8444bf1bb
 
 PKG_LICENSE:=PSF
 PKG_LICENSE_FILES:=LICENSE Modules/_ctypes/libffi_msvc/LICENSE Modules/_ctypes/darwin/LICENSE Modules/_ctypes/libffi/LICENSE Modules/_ctypes/libffi_osx/LICENSE Tools/pybench/LICENSE
@@ -174,7 +174,7 @@ define Build/Compile/python3-setuptools
 	$(STAGING_DIR_HOSTPKG)/bin/pip3 install \
 		--ignore-installed \
 		--root=$(PKG_BUILD_DIR)/install-setuptools --prefix=. \
-		$(PKG_BUILD_DIR)/Lib/ensurepip/_bundled/setuptools-*.whl
+		$(PKG_BUILD_DIR)/Lib/ensurepip/_bundled/setuptools-$(PYTHON3_SETUPTOOLS_VERSION)-py2.py3-none-any.whl
 endef
 endif # CONFIG_PACKAGE_python3-setuptools
 
@@ -183,7 +183,7 @@ define Build/Compile/python3-pip
 	$(STAGING_DIR_HOSTPKG)/bin/pip3 install \
 		--ignore-installed \
 		--root=$(PKG_BUILD_DIR)/install-pip --prefix=. \
-		$(PKG_BUILD_DIR)/Lib/ensurepip/_bundled/pip-*.whl
+		$(PKG_BUILD_DIR)/Lib/ensurepip/_bundled/pip-$(PYTHON3_PIP_VERSION)-py2.py3-none-any.whl
 endef
 endif # CONFIG_PACKAGE_python3-pip
 
@@ -197,6 +197,7 @@ endef
 define Build/InstallDev
 	$(INSTALL_DIR) $(1)/usr/include/ $(1)/usr/lib/
 	$(INSTALL_DIR) $(1)/usr/lib/python$(PYTHON_VERSION)/
+	$(INSTALL_DIR) $(1)/usr/lib/pkgconfig
 	$(CP) \
 		$(PKG_INSTALL_DIR)/usr/include/python$(PYTHON_VERSION) \
 		$(1)/usr/include/
@@ -204,6 +205,10 @@ define Build/InstallDev
 		$(HOST_PYTHON3_LIB_DIR) \
 		$(PKG_INSTALL_DIR)/usr/lib/libpython$(PYTHON_VERSION).so* \
 		$(1)/usr/lib/
+	$(CP) \
+		$(PKG_INSTALL_DIR)/usr/lib/pkgconfig/python3.pc \
+		$(PKG_INSTALL_DIR)/usr/lib/pkgconfig/python-$(PYTHON3_VERSION).pc \
+		$(1)/usr/lib/pkgconfig
 	$(CP) \
 		$(PKG_INSTALL_DIR)/usr/lib/python$(PYTHON_VERSION)/config-$(PYTHON_VERSION) \
 		$(1)/usr/lib/python$(PYTHON_VERSION)/
@@ -264,7 +269,7 @@ define Py3Package/python3/filespec
 endef
 
 HOST_LDFLAGS += \
-	$$$$(pkg-config --static --libs libcrypto libssl)
+	$$$$(pkg-config --static --libs libcrypto libssl) -Wl$(comma)-rpath=$(STAGING_DIR_HOSTPKG)/lib
 
 ifeq ($(HOST_OS),Linux)
 HOST_LDFLAGS += \

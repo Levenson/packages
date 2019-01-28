@@ -1,6 +1,4 @@
 #
-# Copyright (C) 2009-2014 OpenWrt.org
-#
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
@@ -8,23 +6,21 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=btrfs-progs
-PKG_VERSION:=4.17
+PKG_VERSION:=4.20.1
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-v$(PKG_VERSION).tar.xz
-PKG_SOURCE_URL:=@KERNEL/linux/kernel/people/kdave/btrfs-progs/
-PKG_HASH:=82ca0ecf76350a1e3c6543fe220c0910e240511e663d51fc79c32bd0052c117c
-PKG_MAINTAINER:=Rosen Penev <rosenp@gmail.com>
+PKG_SOURCE_URL:=@KERNEL/linux/kernel/people/kdave/btrfs-progs
+PKG_HASH:=562f5d1ff1d17867c4c2be2768c653b62f1f257c42f9bb3e1a36380c02ec4fcd
 PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-v$(PKG_VERSION)
 
+PKG_MAINTAINER:=Rosen Penev <rosenp@gmail.com>
 PKG_LICENSE:=GPL-2.0
 PKG_LICENSE_FILES:=COPYING
 
 PKG_INSTALL:=1
 PKG_BUILD_PARALLEL:=1
 PKG_BUILD_DEPENDS:=acl
-
-PKG_FIXUP:=autoreconf
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -34,7 +30,7 @@ define Package/btrfs-progs
   SUBMENU:=Filesystem
   DEPENDS:=+libattr +libuuid +zlib +libblkid +liblzo +libpthread
   TITLE:=Btrfs filesystems utilities
-  URL:=http://btrfs.wiki.kernel.org/
+  URL:=https://btrfs.wiki.kernel.org/
 endef
 
 define Package/btrfs-progs/description
